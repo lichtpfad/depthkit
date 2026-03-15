@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "depthkit"
+version = "0.1.0"
+description = "Modular depth estimation pipeline: camera → point cloud → TouchDesigner / PLY"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "numpy>=1.24",
+    "plyfile>=1.0",
+    "opencv-python>=4.8",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov"]
+
+[project.scripts]
+depthkit = "depthkit.drivers.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["depthkit*"]
