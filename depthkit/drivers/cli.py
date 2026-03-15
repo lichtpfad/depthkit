@@ -38,9 +38,10 @@ def save_ply(ply_bytes: bytes, path: Path) -> None:
 
 
 def build_stages(model: str, max_res: int, fov: float,
-                 max_points: int, scale: float) -> tuple:
+                 max_points: int, scale: float,
+                 cache_dir: str | None = None) -> tuple:
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    depth_stage = DepthStage(model=model, max_res=max_res)
+    depth_stage = DepthStage(model=model, max_res=max_res, cache_dir=cache_dir)
     pc_stage = PointCloudStage(fov_deg=fov, max_points=max_points)
     ply_stage = PLYStage(scale=scale)
     return depth_stage, pc_stage, ply_stage, device
@@ -54,7 +55,8 @@ def cmd_image(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     depth_s, pc_s, ply_s, device = build_stages(
-        args.model, args.max_res, args.fov, args.max_points, args.scale)
+        args.model, args.max_res, args.fov, args.max_points, args.scale,
+        cache_dir=args.cache)
 
     print(f"Loading model ({args.model})...")
     depth_s.warmup()
@@ -80,7 +82,8 @@ def cmd_video(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     depth_s, pc_s, ply_s, device = build_stages(
-        args.model, args.max_res, args.fov, args.max_points, args.scale)
+        args.model, args.max_res, args.fov, args.max_points, args.scale,
+        cache_dir=args.cache)
 
     cap = cv2.VideoCapture(str(src))
     try:
@@ -126,7 +129,8 @@ def cmd_snapshot(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     depth_s, pc_s, ply_s, device = build_stages(
-        args.model, args.max_res, args.fov, args.max_points, args.scale)
+        args.model, args.max_res, args.fov, args.max_points, args.scale,
+        cache_dir=args.cache)
 
     print(f"Opening webcam {cam_id}...")
     cap = cv2.VideoCapture(cam_id)
@@ -155,6 +159,53 @@ def cmd_snapshot(args: argparse.Namespace) -> None:
     print(f"Saved: {out}")
 
 
+def cmd_benchmark(args: argparse.Namespace) -> None:
+    """Benchmark DepthStage FPS on synthetic frames."""
+    import time
+
+    models = ["vits", "vitb", "vitl"] if args.model == "all" else [args.model]
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    H = W = args.res
+
+    print(f"Benchmark: {H}x{W} frames, device={device}")
+    print(f"Warmup: {args.warmup} frames | Timed: {args.timed} frames\n")
+
+    for model_key in models:
+        stage = DepthStage(model=model_key, max_res=args.res,
+                           cache_dir=args.cache)
+        print(f"Loading {model_key}...", end=" ", flush=True)
+        stage.warmup()
+        print("ready")
+
+        frame = torch.rand(H, W, 3)
+        if device == "cuda":
+            frame = frame.cuda()
+
+        # Warmup passes (not timed)
+        for _ in range(args.warmup):
+            stage(frame)
+
+        # Timed passes
+        if device == "cuda":
+            torch.cuda.synchronize()
+
+        latencies = []
+        for _ in range(args.timed):
+            t0 = time.perf_counter()
+            stage(frame)
+            if device == "cuda":
+                torch.cuda.synchronize()
+            latencies.append(time.perf_counter() - t0)
+
+        latencies.sort()
+        mean_fps = 1.0 / (sum(latencies) / len(latencies))
+        p95_ms = latencies[int(len(latencies) * 0.95)] * 1000
+
+        print(f"  {model_key:4s} @ {W}px: {mean_fps:6.1f} fps  "
+              f"(p95 latency: {p95_ms:.1f}ms)")
+    print()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="depthkit",
@@ -172,6 +223,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Max points in output cloud (default: 200000)")
     common.add_argument("--scale", type=float, default=0.002,
                         help="Gaussian scale in scene units (default: 0.002)")
+    common.add_argument("--cache", default=None, metavar="DIR",
+                        help="Model cache directory (default: HuggingFace default cache)")
 
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -193,6 +246,21 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Webcam source: 'webcam:0' (default: webcam:0)")
     p_snap.add_argument("--output", required=True, help="Output .ply path")
 
+    # benchmark subcommand
+    p_bench = sub.add_parser("benchmark", parents=[common],
+                              conflict_handler="resolve",
+                              help="Benchmark depth inference FPS")
+    p_bench.add_argument("--res", type=int, default=640,
+                         help="Input resolution (square, default: 640)")
+    p_bench.add_argument("--warmup", type=int, default=10,
+                         help="Warmup frames (default: 10)")
+    p_bench.add_argument("--timed", type=int, default=50,
+                         help="Timed frames (default: 50)")
+    # Override --model to allow "all"
+    p_bench.add_argument("--model", choices=["vits", "vitb", "vitl", "all"],
+                         default="vitb",
+                         help="Model variant or 'all' (default: vitb)")
+
     return parser
 
 
@@ -206,6 +274,8 @@ def main() -> None:
         cmd_video(args)
     elif args.command == "snapshot":
         cmd_snapshot(args)
+    elif args.command == "benchmark":
+        cmd_benchmark(args)
     else:
         parser.print_help()
         sys.exit(1)

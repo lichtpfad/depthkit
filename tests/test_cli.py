@@ -98,3 +98,33 @@ def test_parser_invalid_model():
     with pytest.raises(SystemExit):
         parser.parse_args(["image", "--input", "x.jpg", "--output", "x.ply",
                            "--model", "invalid"])
+
+
+def test_parser_benchmark_defaults():
+    parser = build_parser()
+    args = parser.parse_args(["benchmark"])
+    assert args.command == "benchmark"
+    assert args.res == 640
+    assert args.warmup == 10
+    assert args.timed == 50
+    assert args.model == "vitb"
+
+
+def test_parser_benchmark_all_models():
+    parser = build_parser()
+    args = parser.parse_args(["benchmark", "--model", "all"])
+    assert args.model == "all"
+
+
+def test_parser_cache_flag():
+    parser = build_parser()
+    args = parser.parse_args(["image", "--input", "x.jpg", "--output", "x.ply",
+                               "--cache", "/tmp/models"])
+    assert args.cache == "/tmp/models"
+
+
+def test_depth_stage_cache_dir():
+    """DepthStage stores cache_dir param."""
+    from depthkit.stages.depth import DepthStage
+    s = DepthStage(model="vits", cache_dir="/tmp/test")
+    assert s.cache_dir == "/tmp/test"

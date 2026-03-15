@@ -19,23 +19,28 @@ class DepthStage:
         "vitl": "depth-anything/Depth-Anything-V2-Large-hf",
     }
 
-    def __init__(self, model: str = "vitb", max_res: int = 640) -> None:
+    def __init__(self, model: str = "vitb", max_res: int = 640,
+                 cache_dir: str | None = None) -> None:
         if model not in self.MODEL_IDS:
             raise ValueError(f"model must be one of {list(self.MODEL_IDS)}, got {model!r}")
         self.model_key = model
         self.model_id = self.MODEL_IDS[model]
         self.max_res = max_res
+        self.cache_dir = cache_dir
         self._pipe = None  # lazy load
 
     def _ensure_loaded(self) -> None:
         if self._pipe is not None:
             return
         from transformers import pipeline as hf_pipeline
-        self._pipe = hf_pipeline(
+        kwargs = dict(
             task="depth-estimation",
             model=self.model_id,
             device=0 if torch.cuda.is_available() else -1,
         )
+        if self.cache_dir is not None:
+            kwargs["model_kwargs"] = {"cache_dir": self.cache_dir}
+        self._pipe = hf_pipeline(**kwargs)
 
     def __call__(self, frame: torch.Tensor) -> torch.Tensor:
         """Run depth estimation.
