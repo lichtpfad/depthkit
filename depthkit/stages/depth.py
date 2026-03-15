@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import numpy as np
 import torch
 import torch.nn.functional as F
+from PIL import Image
 
 
 class DepthStage:
@@ -49,9 +51,6 @@ class DepthStage:
         H, W = frame.shape[:2]
 
         # Convert tensor -> PIL image for transformers pipeline
-        import numpy as np
-        from PIL import Image
-
         frame_cpu = (frame.cpu().numpy() * 255).clip(0, 255).astype("uint8")
         pil_img = Image.fromarray(frame_cpu)
 
@@ -64,7 +63,7 @@ class DepthStage:
 
         # Run inference
         result = self._pipe(pil_img)
-        depth_np = result["predicted_depth"].squeeze().numpy()  # HxW float32
+        depth_np = result["predicted_depth"].squeeze(0).detach().cpu().numpy()  # HxW float32
 
         # Back to tensor on original device
         depth = torch.from_numpy(depth_np)
@@ -83,7 +82,7 @@ class DepthStage:
                 size=(H, W),
                 mode="bilinear",
                 align_corners=False,
-            ).squeeze()
+            ).squeeze(0).squeeze(0)
 
         # Move to same device as input
         return depth.to(frame.device)
