@@ -16,6 +16,16 @@ class Pipeline:
         self.stages = stages
 
     def __call__(self, *args: Any) -> Any:
+        """Run all stages in sequence.
+
+        Tuple-unpack rule: if a stage returns a tuple, the next stage receives
+        its elements as positional arguments. Use this to pass multiple tensors
+        between stages — e.g. a stage that returns (depth, rgb) feeds both into
+        PointCloudStage(depth, rgb).
+
+        If a stage legitimately needs to forward a single tuple value, wrap it
+        in a list or dataclass instead.
+        """
         result = args
         for stage in self.stages:
             if isinstance(result, tuple):
