@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import math
+
 import torch
-import torch.nn.functional as F
 
 
 class PointCloudStage:
@@ -45,7 +46,7 @@ class PointCloudStage:
         device = depth.device
 
         # Camera intrinsics from horizontal FoV
-        fx = (W / 2.0) / torch.tan(torch.tensor(self.fov_deg / 2.0 * torch.pi / 180.0))
+        fx = (W / 2.0) / math.tan(math.radians(self.fov_deg / 2.0))
         fy = fx
         cx = W / 2.0
         cy = H / 2.0
