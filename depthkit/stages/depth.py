@@ -73,6 +73,8 @@ class DepthStage:
         d_min, d_max = depth.min(), depth.max()
         if d_max > d_min:
             depth = (depth - d_min) / (d_max - d_min)
+        else:
+            depth = torch.zeros_like(depth)
 
         # Resize back to original H, W if we downscaled
         if scale < 1.0:

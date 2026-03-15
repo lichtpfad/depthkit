@@ -49,3 +49,10 @@ def test_downscale_preserves_original_size(stage):
         frame = frame.cuda()
     depth = stage(frame)
     assert depth.shape == (H, W)
+
+
+def test_model_ids_complete():
+    """All declared variants resolve to a HuggingFace model ID."""
+    for key in ("vits", "vitb", "vitl"):
+        s = DepthStage(model=key)
+        assert s.model_id.startswith("depth-anything/")
