@@ -83,40 +83,47 @@ def cmd_video(args: argparse.Namespace) -> None:
         args.model, args.max_res, args.fov, args.max_points, args.scale)
 
     cap = cv2.VideoCapture(str(src))
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    try:
+        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
 
-    print(f"Video: {src.name} — {total} frames @ {fps:.1f}fps")
-    print(f"Loading model ({args.model})...")
-    depth_s.warmup()
+        print(f"Video: {src.name} — {total} frames @ {fps:.1f}fps")
+        print(f"Loading model ({args.model})...")
+        depth_s.warmup()
 
-    out_dir = Path(args.output)
-    out_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(args.output)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    frame_idx = 0
-    saved = 0
-    step = max(1, args.step)
+        frame_idx = 0
+        saved = 0
+        step = max(1, args.step)
 
-    with tqdm(total=total, unit="frame") as pbar:
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                break
-            if frame_idx % step == 0:
-                ply_bytes = process_frame(frame, depth_s, pc_s, ply_s, device)
-                out_path = out_dir / f"frame_{saved:06d}.ply"
-                save_ply(ply_bytes, out_path)
-                saved += 1
-            frame_idx += 1
-            pbar.update(1)
+        with tqdm(total=total, unit="frame") as pbar:
+            while True:
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                if frame_idx % step == 0:
+                    ply_bytes = process_frame(frame, depth_s, pc_s, ply_s, device)
+                    out_path = out_dir / f"frame_{saved:06d}.ply"
+                    save_ply(ply_bytes, out_path)
+                    saved += 1
+                frame_idx += 1
+                pbar.update(1)
 
-    cap.release()
-    print(f"Saved {saved} PLY files to {out_dir}")
+        print(f"Saved {saved} PLY files to {out_dir}")
+    finally:
+        cap.release()
 
 
 def cmd_snapshot(args: argparse.Namespace) -> None:
     """Capture a single frame from webcam and save as PLY."""
-    cam_id = int(args.input.replace("webcam:", "").replace("webcam", "0"))
+    raw = args.input.removeprefix("webcam:") if ":" in args.input else "0"
+    try:
+        cam_id = int(raw)
+    except ValueError:
+        print(f"Error: invalid webcam id '{args.input}', expected 'webcam:N'", file=sys.stderr)
+        sys.exit(1)
 
     depth_s, pc_s, ply_s, device = build_stages(
         args.model, args.max_res, args.fov, args.max_points, args.scale)
