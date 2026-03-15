@@ -199,7 +199,8 @@ def cmd_benchmark(args: argparse.Namespace) -> None:
 
         latencies.sort()
         mean_fps = 1.0 / (sum(latencies) / len(latencies))
-        p95_ms = latencies[int(len(latencies) * 0.95)] * 1000
+        p95_idx = max(0, int(len(latencies) * 0.95) - 1)
+        p95_ms = latencies[p95_idx] * 1000
 
         print(f"  {model_key:4s} @ {W}px: {mean_fps:6.1f} fps  "
               f"(p95 latency: {p95_ms:.1f}ms)")

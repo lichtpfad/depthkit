@@ -39,7 +39,7 @@ class DepthStage:
             device=0 if torch.cuda.is_available() else -1,
         )
         if self.cache_dir is not None:
-            kwargs["model_kwargs"] = {"cache_dir": self.cache_dir}
+            kwargs["cache_dir"] = self.cache_dir
         self._pipe = hf_pipeline(**kwargs)
 
     def __call__(self, frame: torch.Tensor) -> torch.Tensor:
