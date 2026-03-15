@@ -65,7 +65,6 @@ class PLYStage:
         # Build structured numpy array matching 3DGS PLY spec
         dtype = [
             ("x", "f4"), ("y", "f4"), ("z", "f4"),
-            ("nx", "f4"), ("ny", "f4"), ("nz", "f4"),
             ("f_dc_0", "f4"), ("f_dc_1", "f4"), ("f_dc_2", "f4"),
         ]
         for i in range(45):
@@ -78,7 +77,6 @@ class PLYStage:
 
         vertex = np.zeros(N, dtype=dtype)
         vertex["x"], vertex["y"], vertex["z"] = xyz[:, 0], xyz[:, 1], xyz[:, 2]
-        vertex["nx"] = vertex["ny"] = vertex["nz"] = 0.0
         vertex["f_dc_0"] = f_dc[:, 0]
         vertex["f_dc_1"] = f_dc[:, 1]
         vertex["f_dc_2"] = f_dc[:, 2]

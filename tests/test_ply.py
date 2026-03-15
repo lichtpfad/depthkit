@@ -80,3 +80,13 @@ def test_empty_input():
     data = stage(pts)
     ply = PlyData.read(io.BytesIO(data))
     assert len(ply["vertex"]) == 0
+
+
+def test_no_extra_fields():
+    """PLY must not contain nx/ny/nz or other non-3DGS fields."""
+    stage = PLYStage()
+    data = stage(make_points(10))
+    ply = PlyData.read(io.BytesIO(data))
+    names = {p.name for p in ply["vertex"].properties}
+    unexpected = {"nx", "ny", "nz"}
+    assert not unexpected.intersection(names), f"Unexpected fields: {unexpected.intersection(names)}"
