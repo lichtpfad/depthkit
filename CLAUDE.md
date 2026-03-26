@@ -33,6 +33,11 @@ UV="C:/Users/stani/AppData/Local/Microsoft/WinGet/Packages/astral-sh.uv_Microsof
 
 Always use `.venv/Scripts/python.exe` in this repo — NOT C:\work\nerf\venv.
 
+## Code style
+
+- All print messages, logs, comments, and docstrings in code must be in **English only**.
+- No Russian or other non-English text in the codebase.
+
 ## Worktrees
 
 Stored in `.worktrees/` (gitignored).

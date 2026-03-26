@@ -86,3 +86,58 @@ class PointCloudStage:
     def warmup(self) -> None:
         """No-op — included for Stage protocol consistency."""
         pass
+
+
+def unproject_to_position_map(
+    depth: torch.Tensor,
+    rgb: torch.Tensor | None = None,
+    fov_deg: float = 60.0,
+    depth_scale: float = 5.0,
+) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+    """Unproject depth map to a 2D position map (texture layout).
+
+    Unlike PointCloudStage which returns a flat (N, 6) array,
+    this keeps the (H, W) grid — suitable for GPU texture output
+    (e.g. TouchDesigner Script TOP / GLSL TOP).
+
+    Args:
+        depth: (H, W) float32, normalized depth in [0, 1].
+        rgb: Optional (H, W, 3) float32, values in [0, 1].
+             When provided, a color map is returned alongside the position map.
+        fov_deg: Horizontal field of view in degrees.
+        depth_scale: Multiplier for depth values.
+
+    Returns:
+        If rgb is None:
+            (H, W, 4) float32 — R=X, G=Y, B=Z, A=depth.
+        If rgb is provided:
+            Tuple of two (H, W, 4) float32 tensors:
+            - position_map: R=X, G=Y, B=Z, A=depth
+            - color_map: R, G, B, A=1.0
+    """
+    H, W = depth.shape
+    device = depth.device
+
+    fx = (W / 2.0) / math.tan(math.radians(fov_deg / 2.0))
+    fy = fx
+    cx = W / 2.0
+    cy = H / 2.0
+
+    ys, xs = torch.meshgrid(
+        torch.arange(H, device=device, dtype=torch.float32),
+        torch.arange(W, device=device, dtype=torch.float32),
+        indexing="ij",
+    )
+
+    z = depth * depth_scale
+    x = (xs - cx) * z / fx
+    y = (ys - cy) * z / fy
+
+    position_map = torch.stack([x, y, z, depth], dim=-1)
+
+    if rgb is None:
+        return position_map
+
+    alpha = torch.ones(H, W, 1, device=device, dtype=torch.float32)
+    color_map = torch.cat([rgb, alpha], dim=-1)
+    return position_map, color_map
