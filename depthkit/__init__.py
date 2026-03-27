@@ -2,5 +2,9 @@ from depthkit.pipeline import Pipeline, Stage
 from depthkit.stages.depth import DepthStage
 from depthkit.stages.pointcloud import PointCloudStage
 from depthkit.stages.ply import PLYStage
+from depthkit.stages.gaussian import GaussianStage
 
-__all__ = ["Pipeline", "Stage", "DepthStage", "PointCloudStage", "PLYStage"]
+__all__ = [
+    "Pipeline", "Stage",
+    "DepthStage", "PointCloudStage", "PLYStage", "GaussianStage",
+]

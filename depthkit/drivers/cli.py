@@ -207,6 +207,39 @@ def cmd_benchmark(args: argparse.Namespace) -> None:
     print()
 
 
+def cmd_gaussian(args: argparse.Namespace) -> None:
+    """Generate 3DGS PLY from a single image using SHARP."""
+    from depthkit.stages.gaussian import GaussianStage
+
+    src = Path(args.input)
+    if not src.exists():
+        print(f"Error: {src} not found", file=sys.stderr)
+        sys.exit(1)
+
+    frame = cv2.imread(str(src))
+    if frame is None:
+        print(f"Error: could not read {src}", file=sys.stderr)
+        sys.exit(1)
+
+    # Convert BGR → RGB
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    stage = GaussianStage(
+        checkpoint=args.checkpoint,
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        focal_length_mm=args.focal_mm,
+    )
+    print("Loading SHARP model...")
+    stage.warmup()
+
+    print(f"Processing {src.name} ({frame.shape[1]}x{frame.shape[0]})...")
+    ply_bytes = stage(rgb)
+
+    out = Path(args.output)
+    save_ply(ply_bytes, out)
+    print(f"Saved: {out} ({len(ply_bytes) / 1024 / 1024:.1f}MB, ~1.18M Gaussians)")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="depthkit",
@@ -262,6 +295,16 @@ def build_parser() -> argparse.ArgumentParser:
                          default="vitb",
                          help="Model variant or 'all' (default: vitb)")
 
+    # gaussian subcommand (SHARP 3DGS)
+    p_gauss = sub.add_parser("gaussian",
+                              help="Generate 3DGS PLY from image (SHARP)")
+    p_gauss.add_argument("--input", required=True, help="Input image path")
+    p_gauss.add_argument("--output", required=True, help="Output .ply path")
+    p_gauss.add_argument("--checkpoint", default=None,
+                          help="SHARP .pt checkpoint (default: auto-download)")
+    p_gauss.add_argument("--focal-mm", type=float, default=30.0,
+                          help="Focal length in mm if no EXIF (default: 30)")
+
     return parser
 
 
@@ -277,6 +320,8 @@ def main() -> None:
         cmd_snapshot(args)
     elif args.command == "benchmark":
         cmd_benchmark(args)
+    elif args.command == "gaussian":
+        cmd_gaussian(args)
     else:
         parser.print_help()
         sys.exit(1)
