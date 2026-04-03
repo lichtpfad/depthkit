@@ -1,6 +1,11 @@
 // 3DGS Gaussian Splat renderer — vertex shader
 // Instanced on a Grid SOP (1x1 quad, 2 triangles).
 // Each instance is one Gaussian; data fetched from texture uniforms.
+//
+// NOTE: v1 uses isotropic billboard sizing (max scale * 3 sigma).
+// Rotation quaternion is loaded but not yet applied to billboard orientation.
+// TODO: Project 3D covariance (scale + rotation) to screen-space ellipse
+// for proper anisotropic Gaussian rendering.
 
 uniform sampler2D uPositionTex;   // R=x, G=y, B=z, A=1
 uniform sampler2D uColorTex;      // R, G, B, A=1

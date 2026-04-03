@@ -108,21 +108,24 @@ class SplatsTD:
     def num_gaussians(self) -> int:
         return self._data.num_gaussians if self._data else 0
 
-    @property
-    def position_texture(self) -> np.ndarray:
-        return self._textures["position"]
+    def _get_tex(self, key: str) -> np.ndarray | None:
+        return self._textures[key] if self._textures else None
 
     @property
-    def color_texture(self) -> np.ndarray:
-        return self._textures["color"]
+    def position_texture(self) -> np.ndarray | None:
+        return self._get_tex("position")
 
     @property
-    def scale_opacity_texture(self) -> np.ndarray:
-        return self._textures["scale_opacity"]
+    def color_texture(self) -> np.ndarray | None:
+        return self._get_tex("color")
 
     @property
-    def rotation_texture(self) -> np.ndarray:
-        return self._textures["rotation"]
+    def scale_opacity_texture(self) -> np.ndarray | None:
+        return self._get_tex("scale_opacity")
+
+    @property
+    def rotation_texture(self) -> np.ndarray | None:
+        return self._get_tex("rotation")
 
     def sort_by_depth(self, camera_pos: np.ndarray) -> None:
         """Sort Gaussians back-to-front relative to camera and repack."""

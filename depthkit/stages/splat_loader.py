@@ -84,7 +84,7 @@ class SplatLoader:
 
         if n_rest > 0:
             rest_flat = np.column_stack(
-                [v[f"f_rest_{i}"] for i in range(n_rest)]
+                [v[f"f_rest_{i}"] for i in f_rest_indices]
             ).astype(np.float32)
             K = n_rest // 3
             sh_rest = rest_flat[:, : K * 3].reshape(N, K, 3)
@@ -109,4 +109,4 @@ class SplatLoader:
         )
 
     def warmup(self) -> None:
-        pass
+        """No-op: SplatLoader has no model weights to load."""
