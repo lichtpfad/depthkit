@@ -108,14 +108,24 @@ def test_splats_td_load(tmp_path):
 
 
 def test_splats_td_sort_by_depth():
-    data = _make_splat_data(100)
-    data.positions[:, 2] = np.linspace(10, -10, 100)
+    N = 100
+    data = SplatData(
+        positions=np.zeros((N, 3), dtype=np.float32),
+        sh_dc=np.zeros((N, 3), dtype=np.float32),
+        sh_rest=np.zeros((N, 0, 3), dtype=np.float32),
+        opacities_logit=np.zeros(N, dtype=np.float32),
+        scales_log=np.zeros((N, 3), dtype=np.float32),
+        rotations=np.tile([1, 0, 0, 0], (N, 1)).astype(np.float32),
+    )
+    # Place Gaussians along Z axis only (X=Y=0) so distance == |Z|
+    data.positions[:, 2] = np.linspace(-10, 10, N)
 
     td = SplatsTD(tex_width=64)
     td._data = data
     td._repack()
     td.sort_by_depth(camera_pos=np.array([0, 0, 0], dtype=np.float32))
 
-    pos = td.position_texture.reshape(-1, 4)[:100]
+    pos = td.position_texture.reshape(-1, 4)[:N]
     z_values = pos[:, 2]
-    assert z_values[0] > z_values[-1], "Not sorted back-to-front"
+    # Back-to-front: furthest (|Z|=10) first, nearest (Z=0) last
+    assert abs(z_values[0]) > abs(z_values[N // 2]), "Not sorted back-to-front"
