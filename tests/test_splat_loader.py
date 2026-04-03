@@ -171,3 +171,23 @@ def test_loader_empty_ply():
 def test_splat_loader_warmup():
     loader = SplatLoader()
     loader.warmup()
+
+
+SHARP_PLY = Path(__file__).resolve().parents[1] / "data" / "test_gaussian.ply"
+# Also check the main repo data dir (worktrees don't copy gitignored files)
+if not SHARP_PLY.exists():
+    SHARP_PLY = Path("C:/work/depthkit/data/test_gaussian.ply")
+
+
+@pytest.mark.skipif(not SHARP_PLY.exists(), reason="SHARP PLY not available")
+def test_loader_real_sharp_ply():
+    data = SplatLoader.from_file(SHARP_PLY)
+    assert data.num_gaussians == 1_179_648
+    assert data.sh_degree == 0
+    assert data.positions.shape == (1_179_648, 3)
+    # Verify value ranges match known SHARP output
+    assert data.positions[:, 0].min() < -1.0
+    assert data.positions[:, 0].max() > 1.0
+    colors = data.colors_rgb()
+    assert colors.min() >= 0.0
+    assert colors.max() <= 1.0
