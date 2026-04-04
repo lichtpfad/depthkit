@@ -37,7 +37,34 @@ Ships as Python package (pip install) + .toe project + planned .tox component.
 
 ## Competitive Landscape
 
-_Pending competitive research — to be updated._
+### Depth in TD
+
+| Tool | Approach | Weakness |
+|------|----------|----------|
+| Torin Blankensmith DepthAnything .tox | Monolithic .tox, Patreon | No pipeline, no CLI, no 3DGS |
+| olegchomp TDDepthAnything | TensorRT-accelerated | NVIDIA-only, no splat integration |
+| TD 2025 experimental Depth Anything v2 | Native tutorial | Not a reusable component |
+
+### 3DGS in TD
+
+| Tool | Approach | Weakness |
+|------|----------|----------|
+| yeataro TD-Gaussian-Splatting | CUDA rasterizer | NVIDIA-only, viewer only (no generation) |
+| Lake Heckaman TDGS 1.1 | Patreon, SPZ+PLY, particles | Most feature-rich viewer, but no depth→splat pipeline |
+| Tim Gerritsen renderTOP | Free PLY renderer | Minimal, viewer only |
+
+### Adjacent (Unity/Unreal/Web)
+
+- **Unity:** Aras P. viewer (147 FPS / 6.1M splats), gsplat-unity
+- **Unreal:** NanoGS (March 2026, Nanite-style LOD, free)
+- **Web:** Three.js / Babylon.js 8.0 WebGPU viewers
+
+### depthkit differentiators
+
+1. **Only tool connecting depth estimation → 3DGS generation → rendering** in one pipeline. All competitors treat depth and splatting as separate workflows.
+2. **Modular Stage protocol** — composable pipeline vs monolithic .tox files.
+3. **Python package + CLI** — batch processing, automation, headless. All TD competitors are GUI-only.
+4. **GLSL splat rendering** — no CUDA dependency for rendering (works on AMD too).
 
 ## Key Metrics
 
